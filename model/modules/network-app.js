@@ -1,5 +1,5 @@
 export default class NetworkApp {
-    constructor(canvas, canvasContainer) {
+    constructor(canvas, canvasContainer, config, menu, wire) {
         this.canvas = canvas;
         this.canvasContainer = canvasContainer;
         this.routerCounter = 0;
@@ -10,10 +10,10 @@ export default class NetworkApp {
         this.isRemoveObjectMode = false;
         this.startElement = null;
         this.endElement = null;
-        this.networkConfig = new NetworkConfig();
+        this.networkConfig = config;
 
-        this.wireManager = new WireManager(canvas, [3, 5, 6, 8, 10, 12, 17, 20, 25, 27]);
-        this.sideMenu = new SideMenu(document.body, this.networkConfig);  // Инициализируем боковое меню
+        this.wireManager = wire;
+        this.sideMenu = menu; 
     }
 
     createElement(type, x = null, y = null, id = null, objectStatus = 'on') {
@@ -40,7 +40,6 @@ export default class NetworkApp {
         const label = document.createElement('span');
         label.classList.add('text-xs');
 
-        // Увеличиваем счётчик и задаем лейбл
         const counter = ++this[`${type}Counter`];
         label.innerText = `${counter}`;
 
@@ -51,13 +50,11 @@ export default class NetworkApp {
 
         this.makeDraggable(element);
 
-        // Создаем уникальный ID, начиная с единицы
         const uniqueId = id || `${type}-${counter}`;
         element.dataset.id = uniqueId; 
         element.dataset.type = type;  
         element.dataset.objectStatus = objectStatus;  
 
-        // Добавляем обработчик события для двойного клика на объект
         element.addEventListener('dblclick', () => this.sideMenu.openMenu(element));
 
         this.networkConfig.addObject(type, posX, posY, uniqueId);
@@ -65,55 +62,55 @@ export default class NetworkApp {
         return element;
     }
 
-createWireMode(addWireButton) {
-    if (this.isWireMode) return;
-    this.isWireMode = true;
-    addWireButton.classList.add('button-active');
+    createWireMode(addWireButton) {
+        if (this.isWireMode) return;
+        this.isWireMode = true;
+        addWireButton.classList.add('button-active');
 
-    this.boundHandleWireClick = this.handleWireClick.bind(this);
-    this.canvas.addEventListener('click', this.boundHandleWireClick);
-}
-
-handleWireClick(event) {
-    const target = event.target.closest('.element');
-    if (!target) {
-        if (this.startElement) {
-            this.startElement.classList.remove('highlight');
-            this.startElement = null;
-        }
-        this.exitWireMode();
-        return;
+        this.boundHandleWireClick = this.handleWireClick.bind(this);
+        this.canvas.addEventListener('click', this.boundHandleWireClick);
     }
 
-    if (!this.startElement) {
-        this.startElement = target;
-        this.startElement.classList.add('highlight');
-    } else if (target !== this.startElement) {
-        this.endElement = target;
-
-        if (this.wireManager.isWireExisting(this.startElement, this.endElement)) {
-            this.startElement.classList.remove('highlight');
-            this.startElement = null;
-            this.endElement = null;
+    handleWireClick(event) {
+        const target = event.target.closest('.element');
+        if (!target) {
+            if (this.startElement) {
+                this.startElement.classList.remove('highlight');
+                this.startElement = null;
+            }
+            this.exitWireMode();
             return;
         }
 
-        const cableType = "default";
-        const transmissionType = "duplex"; 
+        if (!this.startElement) {
+            this.startElement = target;
+            this.startElement.classList.add('highlight');
+        } else if (target !== this.startElement) {
+            this.endElement = target;
 
-        const weight = this.wireManager.getWeight(this.calculateLength(this.startElement, this.endElement));
+            if (this.wireManager.isWireExisting(this.startElement, this.endElement)) {
+                this.startElement.classList.remove('highlight');
+                this.startElement = null;
+                this.endElement = null;
+                return;
+            }
 
-        const wire = this.wireManager.createWire(this.startElement, this.endElement, cableType, transmissionType, weight);
-        this.networkConfig.addWire(wire);
+            const cableType = "default";
+            const transmissionType = "duplex"; 
 
-        this.startElement.classList.remove('highlight');
-        this.endElement.classList.remove('highlight');
-        this.startElement = null;
-        this.endElement = null;
+            const weight = this.wireManager.getWeight(this.calculateLength(this.startElement, this.endElement));
 
-        this.exitWireMode();
+            const wire = this.wireManager.createWire(this.startElement, this.endElement, cableType, transmissionType, weight);
+            this.networkConfig.addWire(wire);
+
+            this.startElement.classList.remove('highlight');
+            this.endElement.classList.remove('highlight');
+            this.startElement = null;
+            this.endElement = null;
+
+            this.exitWireMode();
+        }
     }
-}
 
     calculateLength(startElement, endElement) {
         const startRect = startElement.getBoundingClientRect();
@@ -271,7 +268,6 @@ handleWireClick(event) {
         });
     }
 
-    // Метод для скачивания конфигурации с сохранением состояния
     getNetworkConfig() {
         this.networkConfig.objects = [];
         this.networkConfig.wires = [];
@@ -338,18 +334,15 @@ handleWireClick(event) {
     }
 
     applyConfig(config) {
-        // Удаляем все текущие элементы и провода
         this.elements.forEach(element => this.canvas.removeChild(element));
         this.wireManager.wires.forEach(wire => {
             this.canvas.removeChild(wire);
             this.canvas.removeChild(wire.label);
         });
 
-        // Очищаем массивы
         this.elements = [];
         this.wireManager.wires = [];
 
-        // Восстанавливаем объекты (станции и маршрутизаторы)
         config.objects.forEach((obj) => {
             let { x, y } = obj; 
             while (this.isOverlapping(x, y)) {
@@ -359,15 +352,13 @@ handleWireClick(event) {
             }
             this.createElement(obj.type, x, y, obj.id, obj.objectStatus);  
 
-            // Ищем созданный элемент по его ID
             const element = this.elements.find(el => el.dataset.id === obj.id);
             if (element) {
-                element.dataset.objectStatus = obj.objectStatus;  // Восстанавливаем статус
-                element.style.opacity = (obj.objectStatus === 'off') ? '0.5' : '1'; // Восстанавливаем видимость
+                element.dataset.objectStatus = obj.objectStatus; 
+                element.style.opacity = (obj.objectStatus === 'off') ? '0.5' : '1';
             }
         });
 
-        // Восстанавливаем провода
         config.wires.forEach((wire) => {
             const startElement = this.elements.find(el => el.dataset.id === wire.startId);
             const endElement = this.elements.find(el => el.dataset.id === wire.endId);
@@ -385,7 +376,6 @@ handleWireClick(event) {
     }
 
     createRandomizedNetwork() {
-         // Стираем все предыдущие элементы
         this.elements.forEach(element => this.canvas.removeChild(element));
         this.wireManager.wires.forEach(wire => {
             this.canvas.removeChild(wire);
@@ -394,11 +384,9 @@ handleWireClick(event) {
         this.elements = [];
         this.wireManager.wires = [];
 
-        // Сбрасываем счётчики
         this.routerCounter = 0;
         this.workstationCounter = 0;
 
-        // Создаем 24 роутера и сохраняем их в массив
         const routers = [];
         const regionWidth = 450;
         const routerSpacingX = 250;
@@ -407,22 +395,18 @@ handleWireClick(event) {
         const regionY1 = 20;
         const regionY2 = regionHeight;
 
-        // Массив для хранения всех связей роутеров
         const routerConnections = Array(24).fill().map(() => []);
 
-        // Создаем роутеры для первого региона (первые 12 роутеров)
         for (let i = 0; i < 12; i++) {
             const x = (i % 6) * routerSpacingX;
             const y = Math.floor(i / 6) * routerSpacingY + regionY1;
             const router = this.createElement('router', x, y);
             routers.push(router);
 
-            // Создаем рабочую станцию для каждого роутера
             const workstationX = x + 80;
             const workstationY = y + 60 + Math.floor(Math.random() * 150) + 1;
             const workstation = this.createElement('workstation', workstationX, workstationY);
 
-            // Создаем провод, соединяющий роутер с рабочей станцией
             this.wireManager.createWire(
                 router, 
                 workstation, 
@@ -432,19 +416,16 @@ handleWireClick(event) {
             );
         }
 
-        // Создаем роутеры для второго региона (следующие 12 роутеров)
         for (let i = 12; i < 24; i++) {
             const x = (i % 6) * routerSpacingX;
             const y = Math.floor(i / 6) * routerSpacingY + regionY2 - 50;
             const router = this.createElement('router', x, y);
             routers.push(router);
 
-            // Создаем рабочую станцию для каждого роутера
             const workstationX = x + 80;
             const workstationY = y + 80 + Math.floor(Math.random() * 100) + 1;
             const workstation = this.createElement('workstation', workstationX, workstationY);
 
-            // Создаем провод, соединяющий роутер с рабочей станцией
             this.wireManager.createWire(
                 router, 
                 workstation, 
@@ -454,31 +435,22 @@ handleWireClick(event) {
             );
         }
 
-        // Создаем спутниковые соединения между двумя регионами
-        // Случайный роутер из первого региона
         const randomRouter1 = routers[Math.floor(Math.random() * 12)];
-        // Случайный роутер из второго региона
         const randomRouter2 = routers[12 + Math.floor(Math.random() * 12)];
 
-        // Создаем первое спутниковое соединение
         this.wireManager.createWire(randomRouter1, randomRouter2, 'satellite', 'duplex', 27);
 
-        // Случайный роутер из первого региона (для второго соединения)
         const randomRouter3 = routers[Math.floor(Math.random() * 12)];
-        // Случайный роутер из второго региона (для второго соединения)
         const randomRouter4 = routers[12 + Math.floor(Math.random() * 12)];
 
-        // Создаем второе спутниковое соединение
         this.wireManager.createWire(randomRouter3, randomRouter4, 'satellite', 'duplex', 25);
 
-        // Связываем роутеры внутри каждого региона (с максимальными 3 соединениями)
         const createConnections = (regionStart, regionEnd) => {
         for (let i = regionStart; i < regionEnd; i++) {
             let connections = routerConnections[i];
 
-            // Ограничиваем цикл для избежания зависания
             let attempts = 0;
-            const maxAttempts = 100; // Максимальное число попыток для поиска соединений
+            const maxAttempts = 100;
 
             while (connections.length < 3 && attempts < maxAttempts) {
                 const targetIndex = Math.floor(Math.random() * (regionEnd - regionStart)) + regionStart;
@@ -488,7 +460,6 @@ handleWireClick(event) {
                     !connections.includes(targetIndex) && 
                     routerConnections[targetIndex].length < 3
                 ) {
-                    // Создаем соединение между роутерами
                     this.wireManager.createWire(
                         routers[i], 
                         routers[targetIndex], 
@@ -503,7 +474,6 @@ handleWireClick(event) {
                 attempts++;
             }
 
-            // Обрабатываем последние два блока отдельно
             if (i >= regionEnd - 2 && connections.length < 3) {
                 while (connections.length < 3) {
                     const targetIndex = (connections.length === 2) ? regionStart : Math.floor(Math.random() * (regionEnd - regionStart)) + regionStart;
@@ -512,7 +482,6 @@ handleWireClick(event) {
                         targetIndex !== i && 
                         !connections.includes(targetIndex)
                     ) {
-                        // Создаем принудительное соединение
                         this.wireManager.createWire(
                             routers[i], 
                             routers[targetIndex], 
@@ -530,11 +499,7 @@ handleWireClick(event) {
         }
     };
 
-
-        // Создаем соединения внутри первого региона (первый регион)
         createConnections(0, 12);
-
-        // Создаем соединения внутри второго региона (второй регион)
         createConnections(12, 24);
     }
 

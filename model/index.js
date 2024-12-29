@@ -1,9 +1,10 @@
 import NetworkApp from './modules/network-app.js'
+import NetworkConfig from './modules/network-config.js'
+import WireManager from './modules/wire-manager.js'
+import SideMenu from './modules/sidemenu.js'
+import PacketTransfer from './modules/packet-transfer.js'
 
-console.log('ready');
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('ready');
-
     const canvas = document.getElementById('canvas');
     const canvasContainer = document.getElementById('canvas-container');
     const addRouterButton = document.getElementById('add-router');
@@ -14,7 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadButtonContainer = document.getElementById('upload-config');
     const downloadButton = document.getElementById('download-config');
     const transferButton = document.getElementById('transfer-data');
-    const app = new NetworkApp(canvas, canvasContainer);
+    const config = new NetworkConfig();
+    const menu = new SideMenu(document.body, config);
+    const wire = new WireManager(canvas, menu);
+    const app = new NetworkApp(canvas, canvasContainer, config, menu, wire);
 
     addRouterButton.addEventListener('click', () => app.createElement('router'));
     addWorkstationButton.addEventListener('click', () => app.createElement('workstation'));
@@ -39,52 +43,39 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadButtonContainer.appendChild(uploadButtonLabel);
     uploadButtonContainer.appendChild(uploadButton);
 
-            // Функция для отслеживания появления кнопки
     function observeButtonCreation(app) {
-        // Создаём экземпляр MutationObserver
         const observer = new MutationObserver((mutationsList, observer) => {
-            // Для каждой мутации (изменения в DOM)
             mutationsList.forEach((mutation) => {
-                // Проверяем, добавлен ли элемент с id "send-data-between"
                 if (mutation.type === 'childList') {
                     const button = document.getElementById('send-data-between');
                     if (button) {
-                        // Если кнопка появилась, добавляем обработчик события
                         button.addEventListener('click', () => handleSendData(app));
-                        // Прекращаем наблюдение, если кнопку уже нашли
                         observer.disconnect();
                     }
                 }
             });
         });
 
-        // Настройки для отслеживания
         const config = { childList: true, subtree: true };
 
-        // Наблюдаем за body (или другим элементом контейнера)
         observer.observe(document.body, config);
     }
 
-    // Запускаем наблюдение за созданием кнопки
     observeButtonCreation(app);
 
-    // Функция обработки нажатия кнопки
     function handleSendData(app) {
         const fromWorkstationId = document.querySelector('#from-workstation-select').value;
         const toWorkstationId = document.querySelector('#to-workstation-select').value;
         const dataSize = document.querySelector('#data-size').value;
 
-        // Пример создания экземпляра и отправки пакета
         const packetTransfer = new PacketTransfer(app.getNetworkConfig());
         packetTransfer.transferDataWithProtocols(fromWorkstationId, toWorkstationId, dataSize);
 
-        // Логика для отправки данных (например, проверка и симуляция передачи)
         if (!fromWorkstationId || !toWorkstationId) {
             alert('Please select both workstations.');
             return;
         }
 
-        // Пример обработки отправки данных
         console.log(`Sending data from ${fromWorkstationId} to ${toWorkstationId} with size ${dataSize} MTU.`);
     }
 
