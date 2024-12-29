@@ -1,0 +1,53 @@
+#canvas-container {
+    user-select: none;
+}
+.element {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.element span {
+    max-width: 100%;
+    word-wrap: break-word;
+    padding: 2px;
+}
+.wire {
+    position: absolute;
+    background-color: black;
+    height: 4px;
+    z-index: 0;
+}
+.wire:hover {
+    transition: .15s linear;
+    height: 8px;
+}
+.highlight {
+    border: 2px dashed #ff5722;
+}
+.highlight {
+    background-color: yellow;
+    transition: background-color 0.3s ease;
+}
+
+.button-active {
+    background-color: #d97706;
+}
+.wire-label {
+    position: absolute;
+    background-color: white;
+    font-size: 12px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.side-menu {
+    transition: transform 0.5s ease-in-out;
+}
