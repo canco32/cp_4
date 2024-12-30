@@ -1,3 +1,5 @@
+import NetworkConfig from './network-config';
+
 export default class NetworkApp {
     constructor(canvas, canvasContainer, config, menu, wire) {
         this.canvas = canvas;
