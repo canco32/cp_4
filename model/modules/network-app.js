@@ -323,16 +323,16 @@ export default class NetworkApp {
     loadConfig(event) {
         const file = event.target.files[0];
         if (!file) return;
-
+    
         const reader = new FileReader();
         reader.onload = (e) => {
             const jsonData = e.target.result;
-            const config = this.networkConfig.importFromJSON(jsonData);
+            const config = NetworkConfig.importFromJSON(jsonData); 
             this.applyConfig(config);
         };
         reader.readAsText(file);
     }
-
+    
     applyConfig(config) {
         this.elements.forEach(element => this.canvas.removeChild(element));
         this.wireManager.wires.forEach(wire => {
