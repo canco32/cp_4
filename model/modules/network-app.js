@@ -327,7 +327,7 @@ export default class NetworkApp {
         const reader = new FileReader();
         reader.onload = (e) => {
             const jsonData = e.target.result;
-            const config = NetworkConfig.importFromJSON(jsonData);
+            const config = this.networkConfig.importFromJSON(jsonData);
             this.applyConfig(config);
         };
         reader.readAsText(file);
